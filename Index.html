@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MercadoSaaS - PDV Ágil</title>
+    
+    <!-- Bibliotecas Locais (100% Offline) -->
+    <script src="/libs/tailwind.js"></script>
+    <script src="/libs/phosphor.js"></script>
+    <script src="/libs/qrcode.min.js"></script>
+    <script src="/libs/chart.min.js"></script>
+    <script src="/libs/chartjs-datalabels.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .anim-fade-in { animation: fadeIn 0.25s ease-out forwards; }
+        .anim-slide-in { animation: slideIn 0.2s ease-out forwards; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-800 h-screen overflow-hidden antialiased flex flex-col">
+
+    <!-- NOTIFICAÇÃO TOAST FLUTUANTE DE WHATSAPP -->
+    <div id="toast-whatsapp" class="hidden fixed bottom-5 right-5 z-[200] max-w-sm bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-700 anim-slide-in flex items-center gap-3">
+        <div id="toast-whatsapp-icon" class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+            <i class="ph-bold ph-whatsapp-logo text-2xl"></i>
+        </div>
+        <div class="flex-1">
+            <h5 id="toast-whatsapp-title" class="text-xs font-bold text-white uppercase tracking-wider">WhatsApp Enviado</h5>
+            <p id="toast-whatsapp-msg" class="text-xs text-slate-300 mt-0.5 leading-snug">Mensagem enviada com sucesso em segundo plano.</p>
+        </div>
+        <button onclick="fecharToastWhatsApp()" class="text-slate-400 hover:text-white transition-colors">
+            <i class="ph ph-x text-base"></i>
+        </button>
+    </div>
+
+    <!-- ================= MODAL: CADASTRAR PRODUTO ================= -->
+    <div id="modal-cadastrar-produto" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[125] flex items-center justify-center p-4 anim-fade-in">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 relative anim-slide-in border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                        <i class="ph ph-plus-circle text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base leading-tight">Cadastrar Produto</h3>
+                        <p class="text-[11px] text-slate-400">Adicione um novo item ao catálogo</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCadastrarProdutoModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <form onsubmit="salvarNovoProduto(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nome do Produto *</label>
+                    <input type="text" id="cad-prod-nome" required placeholder="Ex: Óleo de Girassol 900ml"
+                        class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 focus:bg-white transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Quantidade em Estoque *</label>
+                    <input type="number" id="cad-prod-qtd" required min="1" value="50" placeholder="1"
+                        class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 focus:bg-white transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Valor Unitário (R$) *</label>
+                    <input type="number" id="cad-prod-valor" required step="0.01" min="0.01" placeholder="0,00"
+                        class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 focus:bg-white transition-all">
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="button" onclick="closeCadastrarProdutoModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md">
+                        Salvar Produto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL GRANDE: PAGAMENTO PIX (100% OFFLINE) ================= -->
+    <div id="modal-pix" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[130] flex items-center justify-center p-4 anim-fade-in">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 lg:p-8 relative anim-slide-in text-center border border-slate-100 flex flex-col items-center">
+            
+            <button type="button" onclick="closePixModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2 transition-colors">
+                <i class="ph ph-x text-2xl"></i>
+            </button>
+
+            <span class="text-xs uppercase font-bold tracking-widest text-teal-600 mb-1">Pagamento via PIX</span>
+            <h3 id="modal-pix-valor" class="text-3xl font-black text-slate-800 tracking-tight mb-4">R$ 0,00</h3>
+
+            <!-- Renderizador de QR Code Local (Sem chamada externa) -->
+            <div class="bg-white p-3 rounded-2xl border-2 border-slate-200 shadow-sm mb-4 flex items-center justify-center">
+                <div id="modal-pix-qrcode-container" class="flex items-center justify-center w-60 h-60"></div>
+            </div>
+
+            <div class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 mb-3 text-center">
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Chave Pix</span>
+                <span class="text-lg font-black text-slate-800 font-mono tracking-wide select-all block">allanbrian1995@gmail.com</span>
+            </div>
+
+            <div class="flex items-center gap-2 mb-4 text-teal-700 bg-teal-50 px-4 py-1.5 rounded-full border border-teal-200">
+                <div class="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></div>
+                <span class="text-xs font-bold">Processando pagamento...</span>
+            </div>
+
+            <button type="button" 
+                    onclick="confirmarPagamentoPix()" 
+                    class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                <i class="ph-bold ph-check-circle text-xl"></i> Pagamento Realizado
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: CADASTRAR NOVO CLIENTE FIADO ================= -->
+    <div id="modal-novo-fiado" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4 anim-fade-in">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 relative anim-slide-in border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+                        <i class="ph ph-user-plus text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base leading-tight">Cadastrar Novo Fiado</h3>
+                        <p class="text-[11px] text-slate-400">Adicione um novo cliente na caderneta</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeNovoFiadoModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <form onsubmit="salvarNovoClienteFiado(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nome Completo *</label>
+                    <input type="text" id="novo-fiado-nome" required placeholder="Ex: Rogério Ferreira"
+                        class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-slate-50 focus:bg-white transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Telefone / Contato (Opcional)</label>
+                    <input type="text" id="novo-fiado-tel" placeholder="(11) 90000-0000"
+                        class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-slate-50 focus:bg-white transition-all">
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="button" onclick="closeNovoFiadoModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-md">
+                        Salvar e Vincular
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL DE CONFIRMAÇÃO: QUITAR TOTAL FIADO ================= -->
+    <div id="modal-quitar-total" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[120] flex items-center justify-center p-4 anim-fade-in">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 relative anim-slide-in text-center border border-slate-100">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
+                <i class="ph ph-handshake text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-black text-slate-800">Você tem certeza?</h3>
+            <p class="text-xs text-slate-500 mt-1">Deseja quitar integralmente toda a conta de <strong id="quitar-modal-cliente" class="text-slate-800">-</strong>?</p>
+            
+            <div class="my-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-800">
+                <span class="text-[10px] uppercase font-bold tracking-wider block text-emerald-600">Total Liquidado</span>
+                <span id="quitar-modal-valor" class="text-3xl font-black">R$ 0,00</span>
+            </div>
+            
+            <p class="text-[11px] text-slate-500 mb-5 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                Ao confirmar, o saldo pendente deste cliente será zerado e o pagamento será registrado como quitado.
+            </p>
+            
+            <div class="flex gap-2">
+                <button type="button" onclick="closeQuitarTotalModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors">
+                    Não, Voltar
+                </button>
+                <button type="button" onclick="confirmarQuitarTotal()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-colors">
+                    Sim, Quitar Tudo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= LAYOUT PRINCIPAL ================= -->
+    <div id="app-layout" class="flex-1 h-full flex w-full">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-20 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-20 shrink-0 overflow-hidden">
+            <div class="h-16 flex items-center justify-center px-4 bg-slate-950 border-b border-slate-800 shrink-0">
+                <i class="ph-fill ph-storefront text-primary-500 text-2xl"></i>
+                <span class="sidebar-text hidden ml-2 text-lg font-bold text-white tracking-tight whitespace-nowrap">Mercado<span class="text-primary-500">SaaS</span></span>
+            </div>
+
+            <nav class="flex-1 py-6 flex flex-col gap-2 px-2 overflow-y-auto">
+                <button onclick="handleNavClick('pdv', this)" class="nav-btn w-full flex items-center justify-center px-3 py-3 rounded-xl text-white bg-primary-600 shadow-lg transition-all group" data-view="pdv" title="Frente de Caixa">
+                    <i class="ph ph-barcode text-2xl group-hover:scale-110 transition-transform"></i>
+                    <span class="sidebar-text hidden ml-3 font-medium whitespace-nowrap">Frente de Caixa</span>
+                </button>
+                
+                <button onclick="openCadastrarProdutoModal()" class="nav-btn w-full flex items-center justify-center px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all group" title="Cadastrar Produto">
+                    <i class="ph ph-plus-circle text-2xl group-hover:scale-110 transition-transform"></i>
+                    <span class="sidebar-text hidden ml-3 font-medium whitespace-nowrap">Cadastrar Produto</span>
+                </button>
+
+                <button onclick="handleNavClick('relatorio-fake', this)" class="nav-btn w-full flex items-center justify-center px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all group" data-view="relatorio-fake" title="Relatórios">
+                    <i class="ph ph-chart-pie-slice text-2xl group-hover:scale-110 transition-transform"></i>
+                    <span class="sidebar-text hidden ml-3 font-medium whitespace-nowrap">Relatórios</span>
+                </button>
+            </nav>
+
+            <div onclick="triggerPanicAlert(event)" 
+                 id="operator-profile-box"
+                 class="relative p-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-center shrink-0 cursor-pointer hover:bg-slate-900/80 transition-all select-none">
+                <div id="operator-avatar" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-white shrink-0 active:scale-95 transition-all">
+                    <i class="ph ph-user text-xl text-slate-300"></i>
+                </div>
+                <div class="sidebar-text hidden ml-3 overflow-hidden whitespace-nowrap flex-1">
+                    <p class="text-sm font-semibold text-white truncate">Operador Caixa</p>
+                    <p class="text-[11px] text-emerald-400 flex items-center transition-colors">
+                        <span id="panic-status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 transition-colors"></span>
+                        <span id="panic-status-label">Terminal 01 Ativo</span>
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-100">
+            
+            <!-- Header -->
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" title="Minimizar/Expandir menu" class="text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 p-2 rounded-xl transition-colors focus:outline-none">
+                        <i class="ph ph-list text-xl"></i>
+                    </button>
+                    
+                    <h2 id="page-title" class="text-xl font-bold text-slate-800 flex items-center">
+                        <i class="ph ph-barcode mr-2 text-primary-500"></i> Frente de Caixa (PDV)
+                    </h2>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <button onclick="showView('relatorio-fake')" 
+                            id="clock-btn"
+                            title="Horário do Servidor" 
+                            class="group text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3.5 py-1.5 rounded-xl flex items-center transition-all cursor-pointer shadow-sm active:scale-95">
+                        <i class="ph ph-clock mr-2 text-primary-600 text-lg group-hover:rotate-6 transition-transform"></i>
+                        <span id="current-time" class="font-mono text-xs tracking-wider font-bold">00:00</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-hidden relative">
+
+                <!-- TELA 1: FRENTE DE CAIXA (PDV) -->
+                <div id="view-pdv" class="absolute inset-0 flex flex-col md:flex-row p-3 lg:p-4 gap-3 lg:gap-4 overflow-hidden anim-fade-in">
+                    
+                    <!-- ESQUERDA: CAMPO DE BUSCA INTELIGENTE E CARRINHO -->
+                    <div class="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-0">
+                        <div class="p-4 lg:p-5 bg-slate-800 border-b-4 border-primary-500 shrink-0 relative z-30">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center">
+                                    <i class="ph ph-magnifying-glass text-lg mr-1.5 text-primary-400"></i> Localizar Produto
+                                </label>
+                            </div>
+
+                            <div class="relative">
+                                <input type="text" id="product-search-input" 
+                                       placeholder="Digite o nome ou código do produto" 
+                                       autocomplete="off"
+                                       oninput="handleSearchInput(event)"
+                                       onkeydown="handleSearchKeydown(event)"
+                                       class="w-full pl-4 pr-12 py-3.5 bg-slate-900 border-2 border-slate-700 focus:border-primary-500 rounded-xl text-lg lg:text-xl font-medium text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner">
+                                
+                                <div class="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1 text-slate-400">
+                                    <i class="ph ph-keyboard text-xl"></i>
+                                </div>
+
+                                <div id="search-dropdown" class="hidden absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden max-h-72 overflow-y-auto z-50 divide-y divide-slate-100 anim-slide-in">
+                                    <ul id="search-results-list" class="py-1"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-2 px-4 lg:px-6 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">
+                            <div class="col-span-1 text-center">Item</div>
+                            <div class="col-span-5">Descrição</div>
+                            <div class="col-span-3 text-center">Quantidade</div>
+                            <div class="col-span-3 text-right">Total</div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto bg-slate-50/50 p-2 lg:p-3" id="cart-container" onclick="focusSearchInput()">
+                            <div id="cart-empty-state" class="h-full flex flex-col items-center justify-center text-slate-400 opacity-70">
+                                <i class="ph ph-shopping-cart-simple text-6xl lg:text-7xl mb-4 text-slate-300"></i>
+                                <h3 class="text-lg lg:text-xl font-medium text-slate-600">Caixa Livre</h3>
+                                <p class="text-xs lg:text-sm mt-1">Comece a digitar o produto acima</p>
+                            </div>
+                            <ul id="cart-list" class="space-y-2 pb-10"></ul>
+                        </div>
+                    </div>
+
+                    <!-- DIREITA: PAGAMENTO -->
+                    <div class="w-full md:w-[380px] xl:w-[420px] flex flex-col gap-3 shrink-0 h-full">
+                        <div class="bg-white rounded-2xl p-4 lg:p-5 shadow-sm border border-slate-200 flex flex-col justify-center items-center relative overflow-hidden shrink-0">
+                            <div class="absolute top-0 w-full h-1.5 bg-gradient-to-r from-primary-400 to-primary-600"></div>
+                            <span class="text-slate-500 font-bold uppercase tracking-widest text-xs mb-1 mt-1">Total a Pagar</span>
+                            <h2 id="total-display" class="text-4xl xl:text-5xl font-black text-slate-800 tracking-tighter mb-2">R$ 0,00</h2>
+                            <div class="flex items-center text-slate-500 bg-slate-100 px-3 py-1 rounded-full text-xs font-medium border border-slate-200">
+                                <i class="ph ph-stack mr-1"></i> <span id="item-count" class="mr-1 font-bold text-slate-700">0</span> itens
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-4 lg:p-5 shadow-sm border border-slate-200 flex-1 flex flex-col min-h-0">
+                            <h3 class="text-slate-800 font-bold text-base mb-3 flex items-center uppercase tracking-wide shrink-0">
+                                <i class="ph ph-wallet mr-2 text-primary-500 text-lg"></i> Pagamento
+                            </h3>
+                            
+                            <div class="flex-1 overflow-y-auto pr-1 pb-2 space-y-3">
+                                <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 shrink-0">
+                                    <button onclick="selectPayment('dinheiro')" id="btn-pay-dinheiro" class="pay-btn flex flex-col items-center justify-center py-2.5 border-2 border-slate-200 rounded-xl bg-white hover:border-primary-500 hover:bg-primary-50 transition-all text-slate-700 font-semibold text-sm">
+                                        <i class="ph ph-money text-2xl mb-1 text-emerald-600"></i> Dinheiro
+                                    </button>
+                                    <button onclick="selectPayment('pix')" id="btn-pay-pix" class="pay-btn flex flex-col items-center justify-center py-2.5 border-2 border-slate-200 rounded-xl bg-white hover:border-primary-500 hover:bg-primary-50 transition-all text-slate-700 font-semibold text-sm">
+                                        <i class="ph ph-qr-code text-2xl mb-1 text-teal-600"></i> PIX
+                                    </button>
+                                    <button onclick="selectPayment('credito')" id="btn-pay-credito" class="pay-btn flex flex-col items-center justify-center py-2.5 border-2 border-slate-200 rounded-xl bg-white hover:border-blue-500 hover:bg-blue-50 transition-all text-slate-700 font-semibold text-sm">
+                                        <i class="ph ph-credit-card text-2xl mb-1 text-blue-600"></i> Crédito
+                                    </button>
+                                    <button onclick="selectPayment('debito')" id="btn-pay-debito" class="pay-btn flex flex-col items-center justify-center py-2.5 border-2 border-slate-200 rounded-xl bg-white hover:border-indigo-500 hover:bg-indigo-50 transition-all text-slate-700 font-semibold text-sm">
+                                        <i class="ph ph-credit-card text-2xl mb-1 text-indigo-600"></i> Débito
+                                    </button>
+                                    <button onclick="selectPayment('fiado')" id="btn-pay-fiado" class="pay-btn col-span-2 lg:col-span-2 flex flex-col items-center justify-center py-2.5 border-2 border-slate-200 rounded-xl bg-white hover:border-orange-500 hover:bg-orange-50 transition-all text-slate-700 font-semibold text-sm">
+                                        <i class="ph ph-notebook text-2xl mb-1 text-orange-500"></i> Pendente (Fiado)
+                                    </button>
+                                </div>
+
+                                <!-- Painel Dinheiro -->
+                                <div id="cash-panel" class="hidden transition-all bg-slate-50 p-3 rounded-xl border border-slate-200 shrink-0 anim-slide-in">
+                                    <label class="text-xs font-bold text-slate-700 mb-1 block">Recebido (R$)</label>
+                                    <input type="number" id="cash-input" oninput="calculateChange()" step="0.01" placeholder="0.00"
+                                        class="w-full text-xl font-bold p-2 border-2 border-slate-300 rounded-lg focus:border-primary-500 outline-none text-right mb-2 bg-white">
+                                    <div class="flex justify-between items-center pt-2 border-t-2 border-slate-200 border-dashed">
+                                        <span class="text-slate-500 font-bold uppercase text-xs">Troco</span>
+                                        <span id="change-display" class="text-xl font-black text-slate-800">R$ 0,00</span>
+                                    </div>
+                                </div>
+
+                                <!-- Painel Cartão -->
+                                <div id="card-panel" class="hidden transition-all bg-white p-6 rounded-2xl border border-slate-200 shrink-0 anim-slide-in flex flex-col items-center text-center justify-center min-h-[220px]">
+                                    <div id="card-initial-state" class="w-full flex flex-col items-center">
+                                        <h4 id="card-type-title" class="text-base font-black text-slate-800 mb-4">Cartão de Crédito</h4>
+                                        <button type="button" 
+                                                onclick="iniciarComunicacaoMaquininha()" 
+                                                class="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                                            <i class="ph ph-paper-plane-tilt text-lg"></i> Enviar comunicação para a maquininha
+                                        </button>
+                                    </div>
+
+                                    <div id="card-processing-state" class="hidden w-full flex flex-col items-center anim-fade-in space-y-2">
+                                        <span id="card-processing-amount" class="text-3xl font-black text-slate-800 tracking-tight">R$ 0,00</span>
+                                        <div class="w-6 h-6 rounded-full border-2 border-blue-600 border-t-transparent animate-spin my-1"></div>
+                                        <div>
+                                            <p id="card-processing-status" class="text-sm font-bold text-blue-700">Processando pagamento... (01s)</p>
+                                            <p class="text-xs font-bold text-slate-700 mt-0.5">Verifique a maquininha</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Painel Fiado -->
+                                <div id="fiado-panel" class="hidden transition-all shrink-0 anim-slide-in">
+                                    <div id="fiado-search-area" class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                        <div class="flex gap-2 mb-2">
+                                            <div class="relative flex-1">
+                                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                                                <input type="text" id="fiado-search" oninput="filterClients()" placeholder="Buscar cliente..." autocomplete="off"
+                                                       class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 focus:border-orange-500 rounded-lg text-xs outline-none transition-colors">
+                                            </div>
+                                            <button type="button" onclick="openNovoFiadoModal()" class="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold flex items-center shrink-0 shadow-sm transition-colors">
+                                                <i class="ph ph-user-plus mr-1 text-sm"></i> + Novo
+                                            </button>
+                                        </div>
+                                        <div class="max-h-40 overflow-y-auto pr-1">
+                                            <ul id="fiado-client-list" class="space-y-1"></ul>
+                                        </div>
+                                    </div>
+
+                                    <div id="fiado-selected-area" class="hidden bg-orange-50 border border-orange-200 rounded-2xl p-3 relative">
+                                        <div class="mb-3 flex justify-between items-center">
+                                            <button onclick="resetPdvForNextClient()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold shadow-xs transition-all active:scale-95">
+                                                <i class="ph ph-user-switch text-sm text-slate-500"></i> Próximo Cliente
+                                            </button>
+                                            
+                                            <button type="button" id="btn-whatsapp-fiado-selecionado" onclick="enviarCobrancaWhatsApp(selectedFiadoClient ? selectedFiadoClient.id : null, this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
+                                                <i class="ph-bold ph-whatsapp-logo text-sm"></i> Cobrar WhatsApp
+                                            </button>
+                                        </div>
+
+                                        <div class="flex items-center mb-3 pr-2">
+                                            <div class="w-10 h-10 rounded-full bg-orange-200 text-orange-600 flex items-center justify-center mr-3 shrink-0">
+                                                <i class="ph-fill ph-user text-lg"></i>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <p id="fiado-client-name" class="font-black text-slate-800 text-xl leading-tight truncate">-</p>
+                                                <p id="fiado-client-phone" class="text-xs text-slate-500 font-mono">-</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-white border-2 border-rose-300 rounded-xl p-4 mb-3 text-center shadow-xs">
+                                            <span id="fiado-old-debit" class="text-4xl lg:text-5xl font-black text-rose-600 tracking-tight block my-1 leading-none">R$ 0,00</span>
+                                            <span class="text-[11px] text-slate-500 font-medium block mt-2">Conta mais antiga: <strong id="fiado-old-date" class="text-slate-700 font-bold">-</strong></span>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2 mb-2">
+                                            <button type="button" onclick="toggleAbaterParcial()" class="py-2 px-2 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold rounded-lg text-xs flex items-center justify-center transition-all shadow-sm">
+                                                <i class="ph ph-scissors mr-1 text-sm"></i> Abater Parcial
+                                            </button>
+                                            <button type="button" onclick="openQuitarTotalModal()" class="py-2 px-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-lg text-xs flex items-center justify-center transition-all shadow-sm">
+                                                <i class="ph ph-check-fat mr-1 text-sm"></i> Quitar Total
+                                            </button>
+                                        </div>
+
+                                        <div id="box-abater-parcial" class="hidden bg-white p-2.5 rounded-xl border border-amber-300 mb-2.5 anim-slide-in shadow-inner">
+                                            <label class="block text-[11px] font-bold text-slate-700 mb-1">Quanto deseja abater?</label>
+                                            <div class="flex gap-1.5">
+                                                <input type="number" id="input-abater-parcial" step="0.01" min="0.01" placeholder="0,00" 
+                                                       class="flex-1 px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg outline-none focus:border-amber-500 bg-slate-50 focus:bg-white">
+                                                <button type="button" onclick="confirmarAbaterParcial()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg shadow-sm">
+                                                    OK
+                                                </button>
+                                                <button type="button" onclick="toggleAbaterParcial(false)" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs rounded-lg" title="Fechar">
+                                                    <i class="ph ph-x"></i>
+                                                </button>
+                                            </div>
+                                            <div id="feedback-abater-parcial" class="hidden text-[10px] mt-2 p-1.5 rounded-lg font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"></div>
+                                        </div>
+
+                                        <div class="flex justify-between items-center pt-2 border-t border-orange-200 border-dashed">
+                                            <span class="text-orange-700 font-bold uppercase text-[11px]">Nova Dívida Após Compra:</span>
+                                            <span id="fiado-new-total" class="text-lg font-black text-orange-700">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-auto pt-3 border-t border-slate-100 shrink-0">
+                                <button onclick="finishSale()" id="btn-finish" disabled 
+                                    class="w-full py-3.5 rounded-xl text-white font-bold text-base uppercase tracking-wider flex items-center justify-center transition-all disabled:bg-slate-300 disabled:text-slate-500 bg-primary-500 hover:bg-primary-600 shadow-md">
+                                    <i class="ph ph-check-circle text-xl mr-2"></i> Finalizar Compra
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TELA 2: RELATÓRIO PÚBLICO -->
+                <div id="view-relatorio-fake" class="absolute inset-0 p-4 lg:p-6 overflow-y-auto hidden bg-slate-100 anim-fade-in">
+                    <div class="max-w-6xl mx-auto space-y-6 pb-8">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-sm gap-3">
+                            <div>
+                                <span onclick="showView('relatorios-real')" 
+                                      title="Relatório por turno"
+                                      class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-600 uppercase border border-slate-200 cursor-pointer hover:bg-slate-200 active:scale-95 transition-all select-none">
+                                    Turno da Tarde
+                                </span>
+                                <h3 class="text-xl lg:text-2xl font-black text-slate-800 mt-2">Fechamento do Caixa - Hoje</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleSangriaFalsa()" id="btn-fake-sangria" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center transition-all shadow-sm">
+                                    <i class="ph ph-vault mr-1.5 text-base"></i> Efetuar Sangria de Caixa (Recolher Dinheiro)
+                                </button>
+                                <button onclick="handleNavClick('pdv', document.querySelector('[data-view=pdv]'))" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center transition-all">
+                                    <i class="ph ph-arrow-left mr-1.5"></i> Voltar ao PDV
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="fake-sangria-banner" class="hidden p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500 text-amber-900 anim-slide-in">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                    <i class="ph-fill ph-warning-circle text-2xl"></i>
+                                </div>
+                                <h4 class="font-black text-sm uppercase tracking-wide">Sangria de segurança obrigatória concluída.</h4>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Vendas de Hoje (Total)</p>
+                                <p id="fake-card-vendas" class="text-3xl font-black text-slate-800 mt-2">R$ 0,00</p>
+                                <p class="text-[11px] text-slate-400 mt-1">32 cupons emitidos no dia</p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Caixa de Hoje (Gaveta)</p>
+                                <p id="fake-card-caixa" class="text-3xl font-black text-slate-700 mt-2">R$ 0,00</p>
+                                <p id="fake-card-caixa-desc" class="text-[11px] text-amber-600 font-semibold mt-1 flex items-center">
+                                    <i class="ph ph-warning-circle mr-1"></i> Fundo inicial mínimo
+                                </p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Recebido em PIX</p>
+                                <p id="fake-card-pix" class="text-3xl font-black text-teal-600 mt-2">R$ 0,00</p>
+                                <p class="text-[11px] text-slate-400 mt-1">Transferências em conta bancária</p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cartão de Débito</p>
+                                <p id="fake-card-debito" class="text-3xl font-black text-indigo-600 mt-2">R$ 0,00</p>
+                                <p class="text-[11px] text-slate-400 mt-1">Maquininha operadora TEF</p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cartão de Crédito</p>
+                                <p id="fake-card-credito" class="text-3xl font-black text-blue-600 mt-2">R$ 0,00</p>
+                                <p class="text-[11px] text-slate-400 mt-1">Transações à vista</p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sangrias / Recolhimentos</p>
+                                <p id="fake-card-sangria" class="text-3xl font-black text-rose-500 mt-2">R$ 0,00</p>
+                                <p id="fake-card-sangria-desc" class="text-[11px] text-slate-400 mt-1">Retiradas manuais</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TELA 3: RELATÓRIOS GERAIS (REAIS E CONFIDENCIAIS) -->
+                <div id="view-relatorios-real" class="absolute inset-0 p-4 lg:p-6 overflow-y-auto hidden bg-slate-100 anim-fade-in">
+                    <div class="max-w-6xl mx-auto space-y-6 pb-8">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-sm gap-4">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800">
+                                        <i class="ph ph-shield-check text-sm"></i> Sessão Administrativa Ativa
+                                    </span>
+                                    <span class="text-xs text-slate-400">Dados Financeiros Consolidados</span>
+                                </div>
+                                <h3 class="text-2xl font-black text-slate-800 mt-1">Relatórios Gerenciais Reais</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="lockSecretData()" class="px-4 py-2.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-bold flex items-center transition-colors">
+                                    <i class="ph ph-lock mr-2 text-base"></i> Ocultar Imediatamente
+                                </button>
+                                <button onclick="handleNavClick('pdv', document.querySelector('[data-view=pdv]'))" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center transition-all">
+                                    <i class="ph ph-arrow-left mr-2"></i> Voltar ao PDV
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- MÉTRICAS FINANCEIRAS REAIS -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Vendas de Hoje (Real)</p>
+                                <p id="real-metric-sales" class="text-3xl font-black text-slate-800 mt-2">R$ 0,00</p>
+                                <p class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center">
+                                    <i class="ph ph-trend-up mr-1"></i> Caixa atualizado
+                                </p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Caixa Real (Gaveta)</p>
+                                <p id="real-metric-cash" class="text-3xl font-black text-emerald-600 mt-2">R$ 0,00</p>
+                                <p class="text-[11px] text-slate-500 font-medium mt-1">Dinheiro em espécie presente</p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">PIX Real Recebido</p>
+                                <p id="real-metric-pix" class="text-3xl font-black text-teal-600 mt-2">R$ 0,00</p>
+                                <p class="text-[11px] text-slate-500 font-medium mt-1">Conta PJ Mercado</p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cartão (Crédito + Débito)</p>
+                                <p id="real-metric-card" class="text-3xl font-black text-blue-600 mt-2">R$ 0,00</p>
+                                <p class="text-[11px] text-slate-500 font-medium mt-1">Maquininhas TEF</p>
+                            </div>
+                        </div>
+
+                        <!-- CONTROLE DE FIADOS DO DIA -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6 shadow-sm">
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                                <h4 class="text-base font-black text-slate-800">Controle de Fiados do Dia</h4>
+                                <span class="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">
+                                    Hoje
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Novos fiados de hoje</h5>
+                                    <div class="space-y-1.5">
+                                        <p class="text-sm text-slate-600">
+                                            Quantidade: <strong id="fiado-metric-novos-qtd" class="text-slate-800 text-lg font-black ml-1">0</strong>
+                                        </p>
+                                        <p class="text-sm text-slate-600">
+                                            Valor somado: <strong id="fiado-metric-novos-valor" class="text-slate-800 text-lg font-black font-mono ml-1">R$ 0,00</strong>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Total fiados até o momento</h5>
+                                    <div class="space-y-1.5">
+                                        <p class="text-sm text-slate-600">
+                                            Quantidade de clientes: <strong id="fiado-metric-total-pessoas" class="text-slate-800 text-lg font-black ml-1">0</strong>
+                                        </p>
+                                        <p class="text-sm text-slate-600">
+                                            Valor da dívida total: <strong id="fiado-metric-total-valor" class="text-rose-600 text-lg font-black font-mono ml-1">R$ 0,00</strong>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GRÁFICO DINÂMICO DE VENDAS E DESEMPENHO -->
+                        <div class="bg-white p-5 lg:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-100 pb-4">
+                                <div>
+                                    <h4 id="chart-main-title" class="font-bold text-slate-800 text-base">Picos de Venda por Horário (Hoje)</h4>
+                                    <p id="chart-indicator-text" class="text-xs text-slate-400 font-medium mt-0.5">Visão do turno de hoje com faturamento (R$) e volume por hora</p>
+                                </div>
+                                
+                                <div class="inline-flex p-1 bg-slate-100 rounded-xl gap-1 shrink-0 flex-wrap">
+                                    <button onclick="switchChartFilter('hora', this)" class="chart-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-primary-600 text-white shadow-sm" data-tab="hora">Por Hora (Hoje)</button>
+                                    <button onclick="switchChartFilter('7d', this)" class="chart-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 transition-all" data-tab="7d">Últimos 7 Dias (7D)</button>
+                                    <button onclick="switchChartFilter('mes', this)" class="chart-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 transition-all" data-tab="mes">Por Mês</button>
+                                    <button onclick="switchChartFilter('prod-dia', this)" class="chart-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 transition-all" data-tab="prod-dia">Mais Vendidos (Dia)</button>
+                                    <button onclick="switchChartFilter('prod-mes', this)" class="chart-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 transition-all" data-tab="prod-mes">Mais Vendidos (Mês)</button>
+                                </div>
+                            </div>
+                            
+                            <div class="relative w-full h-[330px]">
+                                <canvas id="salesPeakChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 2º GRÁFICO: DISTRIBUIÇÃO DE DÍVIDAS POR CLIENTE -->
+                        <div class="bg-white p-5 lg:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-base">Distribuição de Dívida por Cliente</h4>
+                                    <p class="text-xs text-slate-400 font-medium">Comparativo dos maiores saldos devedores em aberto</p>
+                                </div>
+                                <span class="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl flex items-center gap-1">
+                                    <i class="ph-bold ph-chart-bar"></i> Ranking Devedores
+                                </span>
+                            </div>
+                            <div class="relative w-full h-[280px]">
+                                <canvas id="debtorsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- LISTA DE FIADOS COM AÇÕES DE WHATSAPP -->
+                        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 gap-2">
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">Lista de Clientes Fiados (Ordenado por Maior Dívida)</h4>
+                                    <p class="text-xs text-slate-500">Classificação decrescente por saldo devedor pendente</p>
+                                </div>
+                                <span id="real-total-debt-badge" class="text-xs font-bold text-slate-700 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                                    Total: R$ 0,00
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                                        <tr>
+                                            <th class="px-6 py-3.5">Posição & Cliente</th>
+                                            <th class="px-6 py-3.5 text-center">Qtd. Fiados / Itens</th>
+                                            <th class="px-6 py-3.5 text-center">Data do Último Fiado</th>
+                                            <th class="px-6 py-3.5 text-center">Data Mais Antiga</th>
+                                            <th class="px-6 py-3.5 text-right">Valor Devedor</th>
+                                            <th class="px-6 py-3.5 text-center">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="real-debtors-table-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const LOCAL_API = window.location.origin.includes('http') ? window.location.origin + '/api' : 'http://localhost:3000/api';
+
+        let productCatalog = [];
+        let mockClients = [];
+
+        const realMetrics = {
+            salesToday: 0.00,
+            cash: 0.00,
+            pix: 0.00,
+            debit: 0.00,
+            credit: 0.00
+        };
+
+        let fakeSangriaAtiva = false;
+        let salesChartInstance = null;
+        let debtorsChartInstance = null;
+        let isSidebarExpanded = false;
+        let currentChartFilter = 'hora';
+
+        let cardProcessingTimer = null;
+        let cardProcessingSeconds = 0;
+
+        let filteredSearchResults = [];
+        let highlightedSearchIndex = -1;
+        let searchMultiplier = 1;
+        let selectedFiadoClient = null;
+        let toastTimeout = null;
+
+        let cart = [];
+        let paymentMethod = null;
+        let totalCart = 0;
+        let qrcodeInstance = null;
+
+        Chart.register(ChartDataLabels);
+
+        function formatMoney(value) { 
+            return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); 
+        }
+
+        // ================= INICIALIZAÇÃO E COMUNICAÇÃO COM SQLITE =================
+        window.onload = async () => {
+            await carregarDadosDoBanco();
+            updateFakeReportUI();
+            setTimeout(focusSearchInput, 150);
+        };
+
+        async function carregarDadosDoBanco() {
+            try {
+                const [resProd, resCli] = await Promise.all([
+                    fetch(`${LOCAL_API}/produtos`),
+                    fetch(`${LOCAL_API}/clientes`)
+                ]);
+
+                if (resProd.ok) {
+                    const produtosDB = await resProd.json();
+                    productCatalog = produtosDB.map(p => ({
+                        id: String(p.id),
+                        name: p.nome,
+                        price: Number(p.preco),
+                        unit: p.unidade,
+                        code: p.codigo
+                    }));
+                }
+
+                if (resCli.ok) {
+                    const clientesDB = await resCli.json();
+                    mockClients = clientesDB.map(c => ({
+                        id: c.id,
+                        name: c.nome,
+                        phone: c.telefone || '-',
+                        debitAmount: Number(c.debitAmount || 0),
+                        oldDate: c.oldDate || '-',
+                        lastDate: c.lastDate || '-',
+                        purchasesCount: Number(c.purchasesCount || 0),
+                        itemsCount: Number(c.itemsCount || 0),
+                        isNewToday: false
+                    }));
+                    renderRealDebtorsTable();
+                }
+            } catch (err) {
+                console.warn("Servidor local ainda não respondeu, tentando novamente...", err);
+            }
+        }
+
+        async function carregarClientesDoBanco() {
+            try {
+                const resCli = await fetch(`${LOCAL_API}/clientes`);
+                if (resCli.ok) {
+                    const clientesDB = await resCli.json();
+                    mockClients = clientesDB.map(c => ({
+                        id: c.id,
+                        name: c.nome,
+                        phone: c.telefone || '-',
+                        debitAmount: Number(c.debitAmount || 0),
+                        oldDate: c.oldDate || '-',
+                        lastDate: c.lastDate || '-',
+                        purchasesCount: Number(c.purchasesCount || 0),
+                        itemsCount: Number(c.itemsCount || 0),
+                        isNewToday: false
+                    }));
+                    renderRealDebtorsTable();
+                }
+            } catch (err) {
+                console.error("Falha ao atualizar clientes:", err);
+            }
+        }
+
+        // ================= DISPARO DE WHATSAPP EM SEGUNDO PLANO =================
+        async function enviarCobrancaWhatsApp(clientId, btnElement) {
+            if (!clientId) return;
+            const cliente = mockClients.find(c => String(c.id) === String(clientId));
+            if (!cliente) return;
+
+            const cleanPhone = (cliente.phone || '').replace(/\D/g, '');
+            if (!cleanPhone || cleanPhone.length < 10) {
+                mostrarToastWhatsApp('Aviso', `O cliente ${cliente.name} não possui um telefone válido cadastrado.`, 'warning');
+                return;
+            }
+            const phoneE164 = cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone;
+            const mensagem = `Olá, ${cliente.name}! Passando apenas para lembrar do seu saldo em aberto de ${formatMoney(cliente.debitAmount)} no MercadoSaaS referente à conta de ${cliente.oldDate}. Chave Pix para acerto: allanbrian1995@gmail.com. Agradecemos a preferência!`;
+
+            const originalHtml = btnElement ? btnElement.innerHTML : '';
+            if (btnElement) {
+                btnElement.disabled = true;
+                btnElement.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Enviando...`;
+            }
+
+            try {
+                const res = await fetch(`${LOCAL_API}/whatsapp/cobrar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telefone: phoneE164, mensagem: mensagem })
+                });
+
+                if (res.ok) {
+                    mostrarToastWhatsApp('Mensagem Enviada!', `Lembrete de ${formatMoney(cliente.debitAmount)} enviado para ${cliente.name} sem abrir a tela.`, 'success');
+
+                    if (btnElement) {
+                        btnElement.innerHTML = `<i class="ph-bold ph-check text-base"></i> Enviado`;
+                        btnElement.classList.replace('bg-emerald-600', 'bg-slate-700');
+                        setTimeout(() => {
+                            btnElement.disabled = false;
+                            btnElement.innerHTML = originalHtml;
+                            btnElement.classList.replace('bg-slate-700', 'bg-emerald-600');
+                        }, 3000);
+                    }
+                } else {
+                    throw new Error("Erro na resposta da API");
+                }
+            } catch (error) {
+                console.error("Erro ao enviar mensagem em segundo plano:", error);
+                mostrarToastWhatsApp('Erro no Envio', `Falha na conexão com o servidor local de WhatsApp.`, 'error');
+                if (btnElement) {
+                    btnElement.disabled = false;
+                    btnElement.innerHTML = originalHtml;
+                }
+            }
+        }
+
+        function mostrarToastWhatsApp(titulo, mensagem, tipo = 'success') {
+            const toast = document.getElementById('toast-whatsapp');
+            const iconDiv = document.getElementById('toast-whatsapp-icon');
+            const titleEl = document.getElementById('toast-whatsapp-title');
+            const msgEl = document.getElementById('toast-whatsapp-msg');
+
+            titleEl.textContent = titulo;
+            msgEl.textContent = mensagem;
+
+            if (tipo === 'success') {
+                iconDiv.className = "w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0";
+                iconDiv.innerHTML = `<i class="ph-bold ph-whatsapp-logo text-2xl"></i>`;
+            } else if (tipo === 'warning') {
+                iconDiv.className = "w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0";
+                iconDiv.innerHTML = `<i class="ph-bold ph-warning text-2xl"></i>`;
+            } else {
+                iconDiv.className = "w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0";
+                iconDiv.innerHTML = `<i class="ph-bold ph-x-circle text-2xl"></i>`;
+            }
+
+            toast.classList.remove('hidden');
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+        }
+
+        function fecharToastWhatsApp() {
+            document.getElementById('toast-whatsapp').classList.add('hidden');
+        }
+
+        // ================= CADASTRAR NOVO PRODUTO =================
+        function openCadastrarProdutoModal() {
+            document.getElementById('cad-prod-nome').value = '';
+            document.getElementById('cad-prod-qtd').value = '50';
+            document.getElementById('cad-prod-valor').value = '';
+            document.getElementById('modal-cadastrar-produto').classList.remove('hidden');
+            setTimeout(() => document.getElementById('cad-prod-nome').focus(), 100);
+        }
+
+        function closeCadastrarProdutoModal() {
+            document.getElementById('modal-cadastrar-produto').classList.add('hidden');
+            focusSearchInput();
+        }
+
+        function salvarNovoProduto(e) {
+            e.preventDefault();
+            const nome = document.getElementById('cad-prod-nome').value.trim();
+            const qtd = parseInt(document.getElementById('cad-prod-qtd').value) || 1;
+            const valor = parseFloat(document.getElementById('cad-prod-valor').value) || 0;
+
+            if (!nome || valor <= 0) {
+                alert("Preencha todos os campos corretamente.");
+                return;
+            }
+
+            const newId = (productCatalog.length + 101).toString();
+            productCatalog.unshift({
+                id: newId,
+                name: `${nome} (${qtd} un)`,
+                price: valor,
+                unit: 'un',
+                code: 'CAD' + newId
+            });
+
+            closeCadastrarProdutoModal();
+            alert(`Produto "${nome}" cadastrado com sucesso!`);
+        }
+
+        // ================= CONTROLE DA MODAL DO PIX (GERAÇÃO LOCAL OFFLINE) =================
+        function openPixModal() {
+            document.getElementById('modal-pix-valor').textContent = formatMoney(totalCart);
+            document.getElementById('modal-pix').classList.remove('hidden');
+
+            const container = document.getElementById('modal-pix-qrcode-container');
+            container.innerHTML = '';
+
+            const payloadPix = "00020126460014BR.GOV.BCB.PIX0124allanbrian1995@gmail.com5204000053039865802BR5924Allan Brian Melchides da6009SAO PAULO62140510AFdVHpXnb263048844";
+
+            // Gera o QR Code direto no navegador sem internet
+            qrcodeInstance = new QRCode(container, {
+                text: payloadPix,
+                width: 240,
+                height: 240,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+
+        function closePixModal() {
+            document.getElementById('modal-pix').classList.add('hidden');
+            focusSearchInput();
+        }
+
+        async function confirmarPagamentoPix() {
+            closePixModal();
+            await finishSale();
+        }
+
+        // ================= BUSCA PREDITIVA INTELIGENTE =================
+        function handleSearchInput(e) {
+            const rawVal = e.target.value.trim();
+            const dropdown = document.getElementById('search-dropdown');
+            const list = document.getElementById('search-results-list');
+
+            if (!rawVal) {
+                dropdown.classList.add('hidden');
+                filteredSearchResults = [];
+                highlightedSearchIndex = -1;
+                return;
+            }
+
+            let searchTerm = rawVal;
+            searchMultiplier = 1;
+            if (rawVal.includes('*')) {
+                const parts = rawVal.split('*');
+                const parsedQtd = parseInt(parts[0]);
+                if (!isNaN(parsedQtd) && parsedQtd > 0) {
+                    searchMultiplier = parsedQtd;
+                    searchTerm = parts.slice(1).join('*').trim();
+                }
+            }
+
+            const termLower = searchTerm.toLowerCase();
+            filteredSearchResults = productCatalog.filter(p => 
+                (p.name && p.name.toLowerCase().includes(termLower)) || 
+                (p.code && p.code.toLowerCase().includes(termLower)) || 
+                (p.id && String(p.id).includes(termLower))
+            );
+
+            if (filteredSearchResults.length === 0) {
+                list.innerHTML = `
+                    <li class="px-4 py-3 text-xs text-slate-400 text-center">
+                        Nenhum produto encontrado com "<strong>${searchTerm}</strong>"
+                    </li>`;
+                dropdown.classList.remove('hidden');
+                highlightedSearchIndex = -1;
+                return;
+            }
+
+            highlightedSearchIndex = 0;
+            renderSearchResults();
+            dropdown.classList.remove('hidden');
+        }
+
+        function renderSearchResults() {
+            const list = document.getElementById('search-results-list');
+            list.innerHTML = '';
+
+            filteredSearchResults.forEach((prod, index) => {
+                const isSelected = index === highlightedSearchIndex;
+                const activeClass = isSelected ? 'bg-primary-50 border-primary-500' : 'hover:bg-slate-50 border-transparent';
+
+                list.innerHTML += `
+                    <li onclick="selectProductFromSearch(${index})" 
+                        class="px-4 py-2.5 flex items-center justify-between cursor-pointer border-l-4 transition-colors ${activeClass}">
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                                ${prod.id}
+                            </span>
+                            <div>
+                                <p class="text-sm font-bold text-slate-800 leading-tight">${prod.name}</p>
+                                <span class="text-[10px] text-slate-400 font-mono">Ref: ${prod.code} • ${prod.unit}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-black text-primary-600 font-mono block">${formatMoney(prod.price)}</span>
+                            ${searchMultiplier > 1 ? `<span class="text-[10px] text-amber-600 font-bold block">x${searchMultiplier} = ${formatMoney(prod.price * searchMultiplier)}</span>` : ''}
+                        </div>
+                    </li>
+                `;
+            });
+        }
+
+        function handleSearchKeydown(e) {
+            const dropdown = document.getElementById('search-dropdown');
+            const isDropdownOpen = !dropdown.classList.contains('hidden');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (isDropdownOpen && filteredSearchResults.length > 0) {
+                    highlightedSearchIndex = (highlightedSearchIndex + 1) % filteredSearchResults.length;
+                    renderSearchResults();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (isDropdownOpen && filteredSearchResults.length > 0) {
+                    highlightedSearchIndex = (highlightedSearchIndex - 1 + filteredSearchResults.length) % filteredSearchResults.length;
+                    renderSearchResults();
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (isDropdownOpen && highlightedSearchIndex >= 0 && filteredSearchResults[highlightedSearchIndex]) {
+                    selectProductFromSearch(highlightedSearchIndex);
+                }
+            } else if (e.key === 'Escape') {
+                if (isDropdownOpen) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        }
+
+        function selectProductFromSearch(index) {
+            const product = filteredSearchResults[index];
+            if (!product) return;
+
+            addProductToCart(product, searchMultiplier);
+
+            const input = document.getElementById('product-search-input');
+            input.value = '';
+            document.getElementById('search-dropdown').classList.add('hidden');
+            filteredSearchResults = [];
+            highlightedSearchIndex = -1;
+            searchMultiplier = 1;
+            input.focus();
+        }
+
+        function addProductToCart(product, qtdToAdd = 1) {
+            const existIndex = cart.findIndex(i => String(i.id) === String(product.id));
+            if (existIndex > -1) {
+                cart[existIndex].qtd += qtdToAdd;
+            } else {
+                cart.unshift({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    qtd: qtdToAdd,
+                    seq: cart.length + 1
+                });
+            }
+            updateCartUI();
+        }
+
+        // ================= ALERTA DISCRETO DO OPERADOR =================
+        function triggerPanicAlert(event) {
+            if (event) event.stopPropagation();
+
+            const dot = document.getElementById('panic-status-dot');
+            const avatar = document.getElementById('operator-avatar');
+
+            if (dot) {
+                dot.classList.remove('bg-emerald-400');
+                dot.classList.add('bg-emerald-200');
+
+                setTimeout(() => {
+                    dot.classList.remove('bg-emerald-200');
+                    dot.classList.add('bg-emerald-500');
+                    setTimeout(() => {
+                        dot.classList.remove('bg-emerald-500');
+                        dot.classList.add('bg-emerald-200');
+                        setTimeout(() => {
+                            dot.classList.remove('bg-emerald-200');
+                            dot.classList.add('bg-emerald-400');
+                        }, 250);
+                    }, 250);
+                }, 250);
+            }
+
+            if (avatar) {
+                avatar.classList.add('border-emerald-500/60');
+                setTimeout(() => avatar.classList.remove('border-emerald-500/60'), 1000);
+            }
+        }
+
+        // ================= COMUNICAÇÃO MAQUININHA =================
+        function iniciarComunicacaoMaquininha() {
+            const initialState = document.getElementById('card-initial-state');
+            const processingState = document.getElementById('card-processing-state');
+            const statusLabel = document.getElementById('card-processing-status');
+            const amountLabel = document.getElementById('card-processing-amount');
+
+            if (initialState) initialState.classList.add('hidden');
+            if (processingState) processingState.classList.remove('hidden');
+
+            if (amountLabel) amountLabel.textContent = formatMoney(totalCart);
+
+            if (cardProcessingTimer) clearInterval(cardProcessingTimer);
+            cardProcessingSeconds = 1;
+            if (statusLabel) statusLabel.textContent = `Processando pagamento... (01s)`;
+
+            cardProcessingTimer = setInterval(() => {
+                cardProcessingSeconds++;
+                const secPadded = cardProcessingSeconds.toString().padStart(2, '0');
+                if (statusLabel) statusLabel.textContent = `Processando pagamento... (${secPadded}s)`;
+            }, 1000);
+        }
+
+        function resetCardPanelState() {
+            if (cardProcessingTimer) {
+                clearInterval(cardProcessingTimer);
+                cardProcessingTimer = null;
+            }
+            cardProcessingSeconds = 0;
+            const initialState = document.getElementById('card-initial-state');
+            const processingState = document.getElementById('card-processing-state');
+            if (initialState) initialState.classList.remove('hidden');
+            if (processingState) processingState.classList.add('hidden');
+        }
+
+        function toggleSidebar() {
+            isSidebarExpanded = !isSidebarExpanded;
+            const sidebar = document.getElementById('sidebar');
+            const texts = document.querySelectorAll('.sidebar-text');
+            
+            if (isSidebarExpanded) {
+                sidebar.classList.remove('w-20');
+                sidebar.classList.add('w-64');
+                texts.forEach(el => el.classList.remove('hidden'));
+            } else {
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-20');
+                texts.forEach(el => el.classList.add('hidden'));
+            }
+        }
+
+        setInterval(() => {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const clockEl = document.getElementById('current-time');
+            if (clockEl) clockEl.textContent = timeStr;
+        }, 1000);
+
+        function focusSearchInput() {
+            const isPdv = !document.getElementById('view-pdv').classList.contains('hidden');
+            const isModalProd = !document.getElementById('modal-cadastrar-produto').classList.contains('hidden');
+            const isModalPix = !document.getElementById('modal-pix').classList.contains('hidden');
+            const isModalNovo = !document.getElementById('modal-novo-fiado').classList.contains('hidden');
+            const isModalQuitar = !document.getElementById('modal-quitar-total').classList.contains('hidden');
+            
+            if (isPdv && !isModalProd && !isModalPix && !isModalNovo && !isModalQuitar && paymentMethod !== 'fiado' && paymentMethod !== 'dinheiro') {
+                const el = document.getElementById('product-search-input');
+                if (el) el.focus();
+            }
+        }
+        
+        document.addEventListener('click', (e) => {
+            const searchDropdown = document.getElementById('search-dropdown');
+            const searchInput = document.getElementById('product-search-input');
+            if (searchDropdown && !searchDropdown.contains(e.target) && e.target !== searchInput) {
+                searchDropdown.classList.add('hidden');
+            }
+        });
+
+        function lockSecretData() {
+            showView('pdv', document.querySelector('[data-view=pdv]'));
+        }
+
+        function updateFakeReportUI() {
+            const fakeSales = realMetrics.salesToday * 0.5;
+            let fakePix = realMetrics.pix * 0.5;
+            const fakeDebit = realMetrics.debit * 0.5;
+            const fakeCredit = realMetrics.credit * 0.5;
+            const fullFakeCash = realMetrics.cash * 0.5;
+
+            const cardCaixa = document.getElementById('fake-card-caixa');
+            const cardCaixaDesc = document.getElementById('fake-card-caixa-desc');
+            const cardSangria = document.getElementById('fake-card-sangria');
+            const cardSangriaDesc = document.getElementById('fake-card-sangria-desc');
+            const sangriaBanner = document.getElementById('fake-sangria-banner');
+            const btnSangria = document.getElementById('btn-fake-sangria');
+
+            if (fakeSangriaAtiva) {
+                fakePix = fakePix * 0.5;
+                cardCaixa.textContent = "R$ 0,00";
+                cardCaixa.classList.replace('text-slate-700', 'text-rose-600');
+                cardCaixaDesc.innerHTML = `<span class="text-rose-600 font-bold"><i class="ph ph-lock-key mr-1"></i> Gaveta Vazia - Malote Recolhido</span>`;
+                cardSangria.textContent = formatMoney(fullFakeCash);
+                cardSangriaDesc.textContent = "Dinheiro no cofre inteligente";
+                sangriaBanner.classList.remove('hidden');
+                btnSangria.classList.replace('bg-rose-600', 'bg-slate-700');
+                btnSangria.innerHTML = `<i class="ph ph-arrow-counter-clockwise mr-1.5 text-base"></i> Desfazer Sangria (Restaurar)`;
+            } else {
+                cardCaixa.textContent = formatMoney(fullFakeCash);
+                cardCaixa.classList.replace('text-rose-600', 'text-slate-700');
+                cardCaixaDesc.innerHTML = `<i class="ph ph-warning-circle mr-1"></i> Fundo inicial mínimo`;
+                cardSangria.textContent = "R$ 0,00";
+                cardSangriaDesc.textContent = "Nenhum recolhimento no turno";
+                sangriaBanner.classList.add('hidden');
+                btnSangria.classList.replace('bg-slate-700', 'bg-rose-600');
+                btnSangria.innerHTML = `<i class="ph ph-vault mr-1.5 text-base"></i> Efetuar Sangria de Caixa (Recolher Dinheiro)`;
+            }
+
+            document.getElementById('fake-card-vendas').textContent = formatMoney(fakeSales);
+            document.getElementById('fake-card-pix').textContent = formatMoney(fakePix);
+            document.getElementById('fake-card-debito').textContent = formatMoney(fakeDebit);
+            document.getElementById('fake-card-credito').textContent = formatMoney(fakeCredit);
+        }
+
+        function toggleSangriaFalsa() {
+            fakeSangriaAtiva = !fakeSangriaAtiva;
+            updateFakeReportUI();
+        }
+
+        function handleNavClick(viewId, btnElement) {
+            showView(viewId, btnElement);
+        }
+
+        function showView(viewId, btnElement) {
+            document.getElementById('view-pdv').classList.add('hidden');
+            document.getElementById('view-relatorio-fake').classList.add('hidden');
+            document.getElementById('view-relatorios-real').classList.add('hidden');
+
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+
+            const title = document.getElementById('page-title');
+            if (viewId === 'relatorios-real') {
+                title.innerHTML = '<i class="ph ph-shield-check mr-2 text-emerald-600"></i> Painel Gerencial Consolidado';
+                renderRealDebtorsTable();
+                renderSalesChart(currentChartFilter); 
+            } else if (viewId === 'relatorio-fake') {
+                title.innerHTML = '<i class="ph ph-chart-pie-slice mr-2 text-primary-500"></i> Resumo de Vendas e Caixa';
+                updateFakeReportUI();
+            } else {
+                title.innerHTML = '<i class="ph ph-barcode mr-2 text-primary-500"></i> Frente de Caixa (PDV)';
+            }
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-primary-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-slate-400', 'hover:text-white', 'hover:bg-slate-800');
+            });
+
+            if (btnElement) {
+                btnElement.classList.add('bg-primary-600', 'text-white', 'shadow-lg');
+                btnElement.classList.remove('text-slate-400');
+            }
+
+            if (viewId === 'pdv') setTimeout(focusSearchInput, 100);
+        }
+
+        // ================= GESTÃO DE FIADOS & TABELA COM WHATSAPP =================
+        function openNovoFiadoModal() {
+            document.getElementById('novo-fiado-nome').value = '';
+            document.getElementById('novo-fiado-tel').value = '';
+            document.getElementById('modal-novo-fiado').classList.remove('hidden');
+            setTimeout(() => document.getElementById('novo-fiado-nome').focus(), 100);
+        }
+
+        function closeNovoFiadoModal() {
+            document.getElementById('modal-novo-fiado').classList.add('hidden');
+            focusSearchInput();
+        }
+
+        async function salvarNovoClienteFiado(e) {
+            e.preventDefault();
+            const nome = document.getElementById('novo-fiado-nome').value.trim();
+            const tel = document.getElementById('novo-fiado-tel').value.trim();
+            if (!nome) return;
+
+            try {
+                const res = await fetch(`${LOCAL_API}/clientes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, telefone: tel })
+                });
+
+                if (res.ok) {
+                    const novo = await res.json();
+                    closeNovoFiadoModal();
+                    await carregarClientesDoBanco();
+                    selectFiadoClient(novo.id);
+                } else {
+                    alert("Erro ao cadastrar cliente.");
+                }
+            } catch (err) {
+                alert("Erro de comunicação com o servidor.");
+            }
+        }
+
+        function toggleAbaterParcial(show = null) {
+            const box = document.getElementById('box-abater-parcial');
+            const feedback = document.getElementById('feedback-abater-parcial');
+            feedback.classList.add('hidden');
+            
+            const isHidden = box.classList.contains('hidden');
+            const shouldOpen = show !== null ? show : isHidden;
+            
+            if (shouldOpen) {
+                box.classList.remove('hidden');
+                document.getElementById('input-abater-parcial').value = '';
+                setTimeout(() => document.getElementById('input-abater-parcial').focus(), 50);
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        async function confirmarAbaterParcial() {
+            if (!selectedFiadoClient) return;
+            const input = document.getElementById('input-abater-parcial');
+            const valorAbatido = parseFloat(input.value) || 0;
+            const feedback = document.getElementById('feedback-abater-parcial');
+
+            if (valorAbatido <= 0) {
+                alert("Informe um valor maior que zero!");
+                input.focus();
+                return;
+            }
+
+            if (valorAbatido > selectedFiadoClient.debitAmount) {
+                alert(`O valor máximo permitido para abatimento é ${formatMoney(selectedFiadoClient.debitAmount)}.`);
+                input.value = selectedFiadoClient.debitAmount.toFixed(2);
+                input.focus();
+                return;
+            }
+
+            try {
+                const res = await fetch(`${LOCAL_API}/clientes/${selectedFiadoClient.id}/abater`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ valor: valorAbatido })
+                });
+
+                if (res.ok) {
+                    feedback.innerHTML = `
+                        <div class="flex items-center text-emerald-800 font-bold">
+                            <i class="ph ph-check-circle mr-1 text-sm"></i> Abatido: ${formatMoney(valorAbatido)}
+                        </div>
+                        <div class="text-[10px] text-slate-600 mt-0.5">
+                            Saldo restante devedor: <strong>${formatMoney(selectedFiadoClient.debitAmount - valorAbatido)}</strong>
+                        </div>
+                    `;
+                    feedback.classList.remove('hidden');
+                    input.value = '';
+
+                    await carregarClientesDoBanco();
+                    const updated = mockClients.find(c => String(c.id) === String(selectedFiadoClient.id));
+                    if (updated) {
+                        selectedFiadoClient = updated;
+                        updateFiadoTotals();
+                    }
+                }
+            } catch (err) {
+                alert("Erro ao registrar abatimento no banco.");
+            }
+        }
+
+        function openQuitarTotalModal() {
+            if (!selectedFiadoClient) return;
+            if (selectedFiadoClient.debitAmount <= 0) {
+                alert("Este cliente não possui dívida pendente.");
+                return;
+            }
+            document.getElementById('quitar-modal-cliente').textContent = selectedFiadoClient.name;
+            document.getElementById('quitar-modal-valor').textContent = formatMoney(selectedFiadoClient.debitAmount);
+            document.getElementById('modal-quitar-total').classList.remove('hidden');
+        }
+
+        function closeQuitarTotalModal() {
+            document.getElementById('modal-quitar-total').classList.add('hidden');
+        }
+
+        async function confirmarQuitarTotal() {
+            if (!selectedFiadoClient) return;
+            const valorQuitado = selectedFiadoClient.debitAmount;
+
+            try {
+                const res = await fetch(`${LOCAL_API}/clientes/${selectedFiadoClient.id}/quitar`, {
+                    method: 'POST'
+                });
+
+                if (res.ok) {
+                    closeQuitarTotalModal();
+                    toggleAbaterParcial(false);
+                    alert(`Dívida de ${formatMoney(valorQuitado)} de ${selectedFiadoClient.name} foi quitada com sucesso!`);
+                    
+                    await carregarClientesDoBanco();
+                    const updated = mockClients.find(c => String(c.id) === String(selectedFiadoClient.id));
+                    if (updated) {
+                        selectedFiadoClient = updated;
+                        updateFiadoTotals();
+                    }
+                }
+            } catch (err) {
+                alert("Erro ao quitar no banco.");
+            }
+        }
+
+        // ================= TABELA ORDENADA COM O BOTÃO WHATSAPP =================
+        function renderRealDebtorsTable() {
+            const tbody = document.getElementById('real-debtors-table-body');
+            const totalBadge = document.getElementById('real-total-debt-badge');
+            
+            const metricNovosQtd = document.getElementById('fiado-metric-novos-qtd');
+            const metricNovosValor = document.getElementById('fiado-metric-novos-valor');
+            const metricTotalPessoas = document.getElementById('fiado-metric-total-pessoas');
+            const metricTotalValor = document.getElementById('fiado-metric-total-valor');
+
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            const devedoresOrdenados = mockClients
+                .filter(c => c.debitAmount > 0)
+                .sort((a, b) => b.debitAmount - a.debitAmount);
+
+            let totalGeral = 0;
+            let novosFiadosCount = 0;
+            let novosFiadosValor = 0;
+
+            devedoresOrdenados.forEach((c, index) => {
+                totalGeral += c.debitAmount;
+
+                if (c.isNewToday) {
+                    novosFiadosCount++;
+                    novosFiadosValor += c.debitAmount;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-3.5">
+                            <div class="flex items-center gap-3">
+                                <span class="w-6 h-6 rounded-full ${index === 0 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'} flex items-center justify-center font-black text-[11px] shrink-0">
+                                    ${index + 1}º
+                                </span>
+                                <div>
+                                    <p class="font-bold text-slate-800 text-sm leading-tight flex items-center gap-1.5">
+                                        ${c.name}
+                                        ${c.isNewToday ? '<span class="text-[9px] bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded font-bold uppercase">Novo</span>' : ''}
+                                    </p>
+                                    <span class="text-[10px] text-slate-400 font-mono">${c.phone}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-3.5 text-center font-medium">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700">
+                                ${c.purchasesCount || 1} notas (${c.itemsCount} un)
+                            </span>
+                        </td>
+                        <td class="px-6 py-3.5 text-center font-mono font-bold text-slate-700">
+                            ${c.lastDate || c.oldDate}
+                        </td>
+                        <td class="px-6 py-3.5 text-center font-mono text-slate-500">
+                            ${c.oldDate}
+                        </td>
+                        <td class="px-6 py-3.5 text-right font-black text-rose-600 font-mono text-sm">
+                            ${formatMoney(c.debitAmount)}
+                        </td>
+                        <td class="px-6 py-3.5 text-center">
+                            <button type="button" 
+                                    onclick="enviarCobrancaWhatsApp('${c.id}', this)"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs shadow-xs transition-all" 
+                                    title="Enviar lembrete via WhatsApp sem abrir tela">
+                                <i class="ph-bold ph-whatsapp-logo text-sm"></i>
+                                <span>Cobrar</span>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            if (metricNovosQtd) metricNovosQtd.textContent = novosFiadosCount;
+            if (metricNovosValor) metricNovosValor.textContent = formatMoney(novosFiadosValor);
+            if (metricTotalPessoas) metricTotalPessoas.textContent = devedoresOrdenados.length;
+            if (metricTotalValor) metricTotalValor.textContent = formatMoney(totalGeral);
+            if (totalBadge) totalBadge.textContent = `Total: ${formatMoney(totalGeral)}`;
+
+            renderDebtorsChart(devedoresOrdenados);
+        }
+
+        // ================= GRÁFICO DOS FIADORES =================
+        function renderDebtorsChart(devedores) {
+            const canvas = document.getElementById('debtorsChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            if (debtorsChartInstance) debtorsChartInstance.destroy();
+
+            const labels = devedores.map(d => d.name);
+            const dataValores = devedores.map(d => d.debitAmount);
+
+            debtorsChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Saldo Devedor (R$)',
+                        data: dataValores,
+                        backgroundColor: '#f43f5e',
+                        borderRadius: 8,
+                        datalabels: {
+                            align: 'end',
+                            anchor: 'end',
+                            color: '#e11d48',
+                            font: { weight: 'bold', size: 10 },
+                            formatter: function(value) { return formatMoney(value); }
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 25, bottom: 5 } },
+                    plugins: {
+                        datalabels: { display: true },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' } } },
+                        y: { beginAtZero: true, ticks: { callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); } } }
+                    }
+                }
+            });
+        }
+
+        // ================= CONTROLE E ALTERNÂNCIA DOS GRÁFICOS =================
+        function switchChartFilter(filterKey, buttonEl) {
+            currentChartFilter = filterKey;
+            
+            document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+                btn.classList.remove('bg-primary-600', 'text-white', 'shadow-sm');
+                btn.classList.add('text-slate-600', 'hover:text-slate-800', 'hover:bg-slate-200');
+            });
+            
+            if (buttonEl) {
+                buttonEl.classList.add('bg-primary-600', 'text-white', 'shadow-sm');
+                buttonEl.classList.remove('text-slate-600', 'hover:bg-slate-200');
+            }
+
+            const mainTitle = document.getElementById('chart-main-title');
+            const subTitle = document.getElementById('chart-indicator-text');
+
+            if (filterKey === 'hora') {
+                mainTitle.textContent = 'Picos de Venda por Horário (Hoje)';
+                subTitle.textContent = 'Visão do turno de hoje com faturamento (R$) e volume por hora';
+            } else if (filterKey === '7d') {
+                mainTitle.textContent = 'Faturamento dos Últimos 7 Dias (7D)';
+                subTitle.textContent = 'Desempenho diário com volume de clientes e receita total';
+            } else if (filterKey === 'mes') {
+                mainTitle.textContent = 'Evolução e Desempenho Mensal (Por Semanas)';
+                subTitle.textContent = 'Consolidação das semanas do mês com faturamento acumulado';
+            } else if (filterKey === 'prod-dia') {
+                mainTitle.textContent = 'Top Produtos Mais Vendidos de Hoje';
+                subTitle.textContent = 'Ranking dos itens com maior volume de saída e faturamento no dia';
+            } else if (filterKey === 'prod-mes') {
+                mainTitle.textContent = 'Top Produtos Mais Vendidos do Mês';
+                subTitle.textContent = 'Classificação geral dos produtos mais consumidos no mês corrente';
+            }
+
+            renderSalesChart(filterKey);
+        }
+
+        function renderSalesChart(filterKey = 'hora') {
+            const canvas = document.getElementById('salesPeakChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            if (salesChartInstance) {
+                salesChartInstance.destroy();
+            }
+
+            if (filterKey === 'prod-dia' || filterKey === 'prod-mes') {
+                let labels = [];
+                let dataQtd = [];
+                let dataValor = [];
+
+                if (filterKey === 'prod-dia') {
+                    labels = [
+                        'Coca-Cola 2L', 
+                        'Cerveja Heineken 330ml', 
+                        'Pão de Forma Pullman', 
+                        'Leite Italac 1L', 
+                        'Batata Ruffles 68g', 
+                        'Detergente Ypê 500ml'
+                    ];
+                    dataQtd = [48, 42, 35, 29, 25, 22];
+                    dataValor = [527.52, 272.58, 314.65, 159.21, 224.75, 54.78];
+                } else {
+                    labels = [
+                        'Arroz Tio João 5kg', 
+                        'Feijão Carioca Camil 1kg', 
+                        'Café Pilão 500g', 
+                        'Óleo de Soja Liza 900ml', 
+                        'Leite Italac 1L', 
+                        'Açúcar Refinado União 1kg'
+                    ];
+                    dataQtd = [310, 280, 245, 230, 220, 195];
+                    dataValor = [9269.00, 2517.20, 5610.50, 1722.70, 1207.80, 973.05];
+                }
+
+                salesChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Qtd. Vendida (Unidades)',
+                                data: dataQtd,
+                                backgroundColor: '#10b981',
+                                borderRadius: 8,
+                                datalabels: {
+                                    align: 'end',
+                                    anchor: 'end',
+                                    color: '#047857',
+                                    font: { weight: 'bold', size: 10 },
+                                    formatter: function(value) { return value + ' un'; }
+                                }
+                            },
+                            {
+                                label: 'Faturamento Total (R$)',
+                                data: dataValor,
+                                backgroundColor: '#3b82f6',
+                                borderRadius: 8,
+                                datalabels: {
+                                    align: 'end',
+                                    anchor: 'end',
+                                    color: '#1d4ed8',
+                                    font: { weight: 'bold', size: 10 },
+                                    formatter: function(value) { return formatMoney(value); }
+                                }
+                            }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: { padding: { right: 80, left: 10 } },
+                        plugins: {
+                            datalabels: { display: true },
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: { usePointStyle: true, boxWidth: 8, font: { weight: '600', size: 11 } }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.datasetIndex === 0) return ' Volume: ' + context.raw + ' unidades';
+                                        return ' Faturamento: ' + formatMoney(context.raw);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: '#f1f5f9' },
+                                ticks: { font: { size: 10 } }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { font: { size: 11, weight: '600' } }
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            let labelsTime = [];
+            let dataFaturamento = [];
+            let dataQuantidade = [];
+            let customXAxisTitle = '';
+
+            if (filterKey === 'hora') {
+                labelsTime = ['08h', '09h', '10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h', '18h', '19h', '20h'];
+                dataFaturamento = [150, 320, 450, 600, 1300, 850, 400, 550, 700, 1100, 1850, 640, 280];
+                dataQuantidade = [5, 12, 18, 25, 52, 30, 15, 20, 28, 40, 75, 22, 10];
+                customXAxisTitle = 'Faixas de Horários de Hoje';
+            } else if (filterKey === '7d') {
+                labelsTime = ['16/10 (Sex)', '17/10 (Sáb)', '18/10 (Dom)', '19/10 (Seg)', '20/10 (Ter)', '21/10 (Qua)', '22/10 (Hoje)'];
+                dataFaturamento = [5600, 6850, 2150, 3200, 3840, 4100, 3840.90];
+                dataQuantidade = [240, 295, 95, 142, 168, 185, 64];
+                customXAxisTitle = 'Últimos 7 Dias de Atendimento';
+            } else if (filterKey === 'mes') {
+                labelsTime = ['Semana 1 (01-07)', 'Semana 2 (08-14)', 'Semana 3 (15-21)', 'Semana 4 (22-28)', 'Fechamento'];
+                dataFaturamento = [24500, 28900, 26300, 31200, 12400];
+                dataQuantidade = [980, 1120, 1040, 1290, 480];
+                customXAxisTitle = 'Semanas do Mês Corrente';
+            }
+
+            salesChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labelsTime,
+                    datasets: [
+                        {
+                            label: 'Faturamento (R$)',
+                            data: dataFaturamento,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            yAxisID: 'y',
+                            datalabels: {
+                                align: 'top',
+                                anchor: 'end',
+                                color: '#ef4444',
+                                font: { weight: 'bold', size: 10 },
+                                formatter: function(value) { return formatMoney(value); }
+                            }
+                        },
+                        {
+                            label: 'Qtd. de Vendas',
+                            data: dataQuantidade,
+                            type: 'bar',
+                            backgroundColor: '#94a3b8',
+                            borderRadius: 6,
+                            yAxisID: 'y1',
+                            datalabels: {
+                                align: 'center',
+                                anchor: 'center',
+                                color: '#ffffff',
+                                font: { weight: 'bold', size: 10 },
+                                formatter: function(value) { return value + ' un'; }
+                            }
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 28, bottom: 5 } },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        datalabels: { display: true },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { usePointStyle: true, boxWidth: 8 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 0) return ' Faturamento: ' + formatMoney(context.raw);
+                                    return ' Qtd. Vendida: ' + context.raw + ' unidades';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: customXAxisTitle, color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Valores em R$', color: '#64748b', font: { size: 10, weight: 'bold' } },
+                            ticks: { callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); } }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Volume de Itens', color: '#64748b', font: { size: 10, weight: 'bold' } },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ================= OPERAÇÃO DO CARRINHO =================
+        function changeQtd(index, delta) {
+            cart[index].qtd += delta;
+            if (cart[index].qtd <= 0) cart.splice(index, 1);
+            updateCartUI();
+            focusSearchInput();
+        }
+
+        function updateCartUI() {
+            const list = document.getElementById('cart-list');
+            const emptyState = document.getElementById('cart-empty-state');
+            totalCart = 0;
+            let totalQtd = 0;
+            list.innerHTML = '';
+
+            if (cart.length === 0) {
+                emptyState.classList.remove('hidden');
+                document.getElementById('total-display').classList.replace('text-primary-600', 'text-slate-800');
+                document.getElementById('btn-finish').disabled = true;
+            } else {
+                emptyState.classList.add('hidden');
+                document.getElementById('total-display').classList.replace('text-slate-800', 'text-primary-600');
+                const canFinish = paymentMethod && (paymentMethod !== 'fiado' || selectedFiadoClient);
+                document.getElementById('btn-finish').disabled = !canFinish;
+
+                cart.forEach((item, index) => {
+                    const itemTotal = item.price * item.qtd;
+                    totalCart += itemTotal; 
+                    totalQtd += item.qtd;
+                    list.innerHTML += `
+                        <li class="grid grid-cols-12 gap-2 px-3 lg:px-4 py-2.5 bg-white border border-slate-200 rounded-xl shadow-xs items-center anim-slide-in">
+                            <div class="col-span-1 text-center bg-slate-100 text-slate-500 rounded-lg py-1 text-[10px] font-bold font-mono">
+                                ${item.seq.toString().padStart(3, '0')}
+                            </div>
+                            <div class="col-span-5 pl-1.5 overflow-hidden">
+                                <p class="font-bold text-slate-800 truncate text-sm leading-tight">${item.name}</p>
+                                <p class="text-[10px] text-slate-400 font-mono mt-0.5">${formatMoney(item.price)} un</p>
+                            </div>
+                            <div class="col-span-3 flex justify-center items-center">
+                                <div class="inline-flex items-center bg-slate-100 border border-slate-200 rounded-xl p-0.5 gap-1 shadow-xs">
+                                    <button onclick="changeQtd(${index}, -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-slate-700 hover:bg-rose-50 hover:text-rose-600 active:scale-90 transition-all text-xs font-bold shadow-xs">
+                                        <i class="ph ph-minus font-bold"></i>
+                                    </button>
+                                    <span class="w-7 text-center font-black text-slate-800 text-xs font-mono">${item.qtd}</span>
+                                    <button onclick="changeQtd(${index}, 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-slate-700 hover:bg-primary-50 hover:text-primary-600 active:scale-90 transition-all text-xs font-bold shadow-xs">
+                                        <i class="ph ph-plus font-bold"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-span-3 text-right font-black text-slate-800 text-sm lg:text-base">${formatMoney(itemTotal)}</div>
+                        </li>`;
+                });
+            }
+
+            document.getElementById('total-display').textContent = formatMoney(totalCart);
+            document.getElementById('item-count').textContent = totalQtd;
+            
+            if (paymentMethod === 'dinheiro') calculateChange();
+            if (paymentMethod === 'fiado' && selectedFiadoClient) updateFiadoTotals();
+        }
+
+        // ================= FORMAS DE PAGAMENTO =================
+        function selectPayment(method) {
+            paymentMethod = method;
+            document.querySelectorAll('.pay-btn').forEach(btn => {
+                btn.classList.remove('border-primary-500', 'border-orange-500', 'border-blue-500', 'border-indigo-500', 'bg-primary-50', 'bg-orange-50', 'bg-blue-50', 'bg-indigo-50', 'ring-4');
+                btn.classList.add('border-slate-200', 'bg-white');
+            });
+            
+            const activeBtn = document.getElementById(`btn-pay-${method}`);
+            if (method === 'fiado') {
+                activeBtn.classList.add('border-orange-500', 'bg-orange-50', 'ring-4');
+            } else if (method === 'credito') {
+                activeBtn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4');
+            } else if (method === 'debito') {
+                activeBtn.classList.add('border-indigo-500', 'bg-indigo-50', 'ring-4');
+            } else {
+                activeBtn.classList.add('border-primary-500', 'bg-primary-50', 'ring-4');
+            }
+            activeBtn.classList.remove('border-slate-200');
+
+            const cashPanel = document.getElementById('cash-panel');
+            const cardPanel = document.getElementById('card-panel');
+            const fiadoPanel = document.getElementById('fiado-panel');
+            
+            cashPanel.classList.add('hidden');
+            cardPanel.classList.add('hidden');
+            fiadoPanel.classList.add('hidden');
+
+            if (method === 'dinheiro') {
+                cashPanel.classList.remove('hidden');
+                document.getElementById('cash-input').value = '';
+                document.getElementById('change-display').textContent = 'R$ 0,00';
+                setTimeout(() => document.getElementById('cash-input').focus(), 50);
+            } else if (method === 'pix') {
+                openPixModal();
+            } else if (method === 'credito' || method === 'debito') {
+                resetCardPanelState();
+                cardPanel.classList.remove('hidden');
+                const cardTitle = document.getElementById('card-type-title');
+                if (cardTitle) {
+                    cardTitle.textContent = method === 'credito' ? 'Cartão de Crédito' : 'Cartão de Débito';
+                }
+            } else if (method === 'fiado') {
+                fiadoPanel.classList.remove('hidden');
+                if (!selectedFiadoClient) resetFiadoSearch();
+            } else {
+                focusSearchInput();
+            }
+            updateCartUI();
+        }
+
+        function calculateChange() {
+            if (paymentMethod !== 'dinheiro') return;
+            const received = parseFloat(document.getElementById('cash-input').value) || 0;
+            const display = document.getElementById('change-display');
+            if (received >= totalCart && totalCart > 0) {
+                display.textContent = formatMoney(received - totalCart);
+                display.classList.replace('text-slate-800', 'text-green-600');
+            } else {
+                display.textContent = 'R$ 0,00';
+                display.classList.replace('text-green-600', 'text-slate-800');
+            }
+        }
+
+        function resetFiadoSearch(event) {
+            if (event) event.stopPropagation();
+            selectedFiadoClient = null;
+            toggleAbaterParcial(false);
+            document.getElementById('fiado-selected-area').classList.add('hidden');
+            document.getElementById('fiado-search-area').classList.remove('hidden');
+            document.getElementById('fiado-search').value = '';
+            renderFiadoClients(mockClients);
+            setTimeout(() => document.getElementById('fiado-search').focus(), 50);
+            updateCartUI();
+        }
+
+        function filterClients() {
+            const term = document.getElementById('fiado-search').value.toLowerCase();
+            const filtered = mockClients.filter(c => c.name.toLowerCase().includes(term));
+            renderFiadoClients(filtered, term);
+        }
+
+        function renderFiadoClients(clients, term = '') {
+            const list = document.getElementById('fiado-client-list');
+            list.innerHTML = '';
+            if (clients.length === 0) {
+                list.innerHTML = `
+                    <li class="p-3 border border-dashed border-orange-300 bg-orange-50 rounded-xl text-center mt-1">
+                        <p class="text-xs text-orange-700 mb-1.5 font-medium">Nenhum cliente com esse nome.</p>
+                        <button type="button" onclick="openNovoFiadoModal()" class="px-3 py-1.5 bg-orange-500 text-white text-xs font-bold rounded-lg hover:bg-orange-600 transition-colors">
+                            Cadastrar "${term}"
+                        </button>
+                    </li>`;
+                return;
+            }
+            clients.forEach(c => {
+                const color = c.debitAmount > 0 ? 'text-red-500' : 'text-slate-400';
+                list.innerHTML += `
+                    <li>
+                        <button type="button" onclick="selectFiadoClient('${c.id}')" class="w-full text-left p-2 bg-white border border-slate-200 hover:border-orange-500 rounded-lg flex justify-between items-center group transition-colors">
+                            <div>
+                                <h4 class="font-bold text-slate-700 text-xs group-hover:text-orange-600">${c.name}</h4>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Dívida: ${c.oldDate}</p>
+                            </div>
+                            <span class="font-black text-xs ${color}">${formatMoney(c.debitAmount)}</span>
+                        </button>
+                    </li>`;
+            });
+        }
+
+        function selectFiadoClient(id) {
+            selectedFiadoClient = mockClients.find(c => String(c.id) === String(id));
+            toggleAbaterParcial(false);
+            document.getElementById('fiado-search-area').classList.add('hidden');
+            document.getElementById('fiado-selected-area').classList.remove('hidden');
+            updateFiadoTotals();
+            updateCartUI();
+        }
+
+        function updateFiadoTotals() {
+            if (!selectedFiadoClient) return;
+            document.getElementById('fiado-client-name').textContent = selectedFiadoClient.name;
+            document.getElementById('fiado-client-phone').textContent = selectedFiadoClient.phone || 'Sem telefone';
+            document.getElementById('fiado-old-debit').textContent = formatMoney(selectedFiadoClient.debitAmount);
+            document.getElementById('fiado-old-date').textContent = selectedFiadoClient.oldDate;
+            const newTotal = selectedFiadoClient.debitAmount + totalCart;
+            document.getElementById('fiado-new-total').textContent = formatMoney(newTotal);
+        }
+
+        // ================= FINALIZAR VENDA (TRANSAÇÃO ATÔMICA LOCAL) =================
+        async function finishSale() {
+            if (cart.length === 0 || !paymentMethod) return;
+
+            if (paymentMethod === 'dinheiro') {
+                const received = parseFloat(document.getElementById('cash-input').value) || 0;
+                if (received < totalCart) {
+                    alert("Valor recebido insuficiente!");
+                    document.getElementById('cash-input').focus();
+                    return;
+                }
+            } else if (paymentMethod === 'fiado' && !selectedFiadoClient) {
+                alert("Selecione um cliente para vincular a venda fiada.");
+                return;
+            }
+
+            const payload = {
+                total: totalCart,
+                formaPagamento: paymentMethod,
+                clienteId: selectedFiadoClient ? selectedFiadoClient.id : null,
+                itens: cart
+            };
+
+            try {
+                const res = await fetch(`${LOCAL_API}/vendas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    realMetrics.salesToday += totalCart;
+                    if (paymentMethod === 'dinheiro') realMetrics.cash += totalCart;
+                    else if (paymentMethod === 'pix') realMetrics.pix += totalCart;
+                    else if (paymentMethod === 'credito') realMetrics.credit += totalCart;
+                    else if (paymentMethod === 'debito') realMetrics.debit += totalCart;
+                    updateFakeReportUI();
+
+                    await carregarClientesDoBanco();
+                    resetPdvForNextClient();
+                } else {
+                    alert("Erro ao gravar venda no banco local.");
+                }
+            } catch (err) {
+                console.error("Erro ao finalizar venda:", err);
+                alert("Erro de comunicação com o serviço local do PDV.");
+            }
+        }
+
+        function resetPdvForNextClient() {
+            cart = [];
+            totalCart = 0;
+            selectedFiadoClient = null;
+            paymentMethod = null;
+            toggleAbaterParcial(false);
+            resetCardPanelState();
+            
+            document.getElementById('cash-panel').classList.add('hidden');
+            document.getElementById('card-panel').classList.add('hidden');
+            document.getElementById('fiado-panel').classList.add('hidden');
+            document.getElementById('fiado-selected-area').classList.add('hidden');
+            document.getElementById('fiado-search-area').classList.remove('hidden');
+            
+            document.querySelectorAll('.pay-btn').forEach(btn => {
+                btn.classList.remove('border-primary-500', 'border-orange-500', 'border-blue-500', 'border-indigo-500', 'bg-primary-50', 'bg-orange-50', 'bg-blue-50', 'bg-indigo-50', 'ring-4');
+                btn.classList.add('border-slate-200', 'bg-white');
+            });
+            
+            const searchInput = document.getElementById('product-search-input');
+            if (searchInput) searchInput.value = '';
+            document.getElementById('search-dropdown').classList.add('hidden');
+
+            updateCartUI();
+            focusSearchInput();
+        }
+    </script>
+</body>
+</html>
