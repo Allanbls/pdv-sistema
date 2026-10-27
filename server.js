@@ -3,6 +3,7 @@ const cors = require('cors');
 const Database = require('better-sqlite3');
 const { randomUUID } = require('crypto');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(cors());
@@ -13,6 +14,99 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Conexão com o banco local
 const db = new Database(path.join(__dirname, 'pdv_local.db'));
+
+// ================= CONFIGURAÇÃO DO SUPABASE =================
+// Substitua o endereço abaixo pelo URL real do seu projeto no Supabase
+const SUPABASE_URL = 'https://mldslafecrvzywbncimg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_MJP7rjuJRFid3a8xEBwSzA_uaQig3cp';
+const EMPRESA_ID = 'id-da-loja-do-cliente';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ================= ROTINA DE SINCRONIZAÇÃO OFFLINE-FIRST =================
+async function sincronizarComNuvem() {
+    try {
+        // 1. Busca vendas pendentes (sincronizado = 0)
+        const vendasPendentes = db.prepare(`
+            SELECT id, data_hora, valor_total, forma_pagamento, cliente_id 
+            FROM vendas 
+            WHERE sincronizado = 0
+            LIMIT 20
+        `).all();
+
+        for (const venda of vendasPendentes) {
+            // Busca itens da venda atual
+            const itens = db.prepare(`
+                SELECT id, produto_id, quantidade, preco_unitario, subtotal 
+                FROM itens_venda 
+                WHERE venda_id = ?
+            `).all(venda.id);
+
+            // Envia o cabeçalho da venda para o Supabase
+            const { error: errVenda } = await supabase.from('vendas').upsert({
+                id: venda.id,
+                empresa_id: EMPRESA_ID,
+                data_hora: venda.data_hora,
+                valor_total: venda.valor_total,
+                forma_pagamento: venda.forma_pagamento,
+                cliente_id: venda.cliente_id
+            });
+
+            if (errVenda) throw errVenda;
+
+            // Envia os itens para o Supabase
+            if (itens.length > 0) {
+                const itensPayload = itens.map(item => ({
+                    id: item.id,
+                    venda_id: venda.id,
+                    produto_id: item.produto_id,
+                    quantidade: item.quantidade,
+                    preco_unitario: item.preco_unitario,
+                    subtotal: item.subtotal
+                }));
+
+                const { error: errItens } = await supabase.from('itens_venda').upsert(itensPayload);
+                if (errItens) throw errItens;
+            }
+
+            // Atualiza o banco local marcando como sincronizado
+            db.prepare('UPDATE vendas SET sincronizado = 1 WHERE id = ?').run(venda.id);
+            console.log(`[Sincronização] Venda ${venda.id} enviada para a nuvem.`);
+        }
+
+        // 2. Busca fiados pendentes (sincronizado = 0)
+        const fiadosPendentes = db.prepare(`
+            SELECT id, cliente_id, tipo, valor, venda_id, data_hora 
+            FROM fiado_movimentacoes 
+            WHERE sincronizado = 0
+            LIMIT 20
+        `).all();
+
+        for (const fiado of fiadosPendentes) {
+            const { error: errFiado } = await supabase.from('fiado_movimentacoes').upsert({
+                id: fiado.id,
+                empresa_id: EMPRESA_ID,
+                cliente_id: fiado.cliente_id,
+                tipo: fiado.tipo,
+                valor: fiado.valor,
+                venda_id: fiado.venda_id,
+                data_hora: fiado.data_hora
+            });
+
+            if (errFiado) throw errFiado;
+
+            // Atualiza o banco local marcando como sincronizado
+            db.prepare('UPDATE fiado_movimentacoes SET sincronizado = 1 WHERE id = ?').run(fiado.id);
+            console.log(`[Sincronização] Fiado ${fiado.id} enviado para a nuvem.`);
+        }
+    } catch (err) {
+        // Se falhar (ex: sem internet ou URL ainda não configurada), não trava o PDV
+        console.error('[Sincronização - Detalhe do Erro]:', err);
+    }
+}
+
+// Executa a tentativa de sincronização a cada 30 segundos
+setInterval(sincronizarComNuvem, 30 * 1000);
 
 // ================= ROTAS DE PRODUTOS =================
 app.get('/api/produtos', (req, res) => {
@@ -164,10 +258,10 @@ app.post('/api/whatsapp/cobrar', async (req, res) => {
     res.json({ success: true });
 });
 
-// Porta local padrão
-const PORT = 3000;
+// Porta local dinâmica ou padrão
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log('==================================================');
-    console.log(`PDV Caixa Ativo em: http://localhost:3000`);
+    console.log(`PDV Caixa Ativo em: http://localhost:${PORT}`);
     console.log('==================================================');
 });
